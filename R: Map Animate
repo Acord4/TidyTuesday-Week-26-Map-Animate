@@ -1,0 +1,83 @@
+---
+title: "Week 26 Animate Map"
+author: "Alonso Cordova"
+date: "6/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+Load Packages and call data 
+```{r cars}
+library(gapminder)
+library(ggplot2)
+library(gganimate)
+library(glue)
+library(ggmap)
+library(lubridate)
+library(tidyverse)
+
+locations <- read_csv("locations.csv")
+
+# Make sure to arrange time so it plots correctly 
+locations <- locations %>%  mutate(year_time = year(timestamp),
+                                    year_month = format(as.Date(timestamp), "%Y-%m"),
+                                    test_time = row_number()) %>% arrange(-desc(timestamp))
+
+
+```
+
+
+
+Load
+```{r}
+
+register_google(key = "Insert your own key here")
+
+map <- get_googlemap(c(-122.758162,55.521117), zoom = 6, maptype = "terrain")
+
+```
+
+
+
+
+
+```{r pressure, echo=FALSE}
+
+
+car_track <- ggmap(map) + #coord_equal() +
+  theme_void() + 
+  theme(
+    plot.title = element_text(colour = "black"), 
+    panel.border = element_rect(colour = "grey", fill=NA, size=2)
+  ) + 
+  geom_point(data = locations, 
+             aes(x = longitude, y = latitude), 
+             color = "navy", size = 1) +  
+  labs(x=NULL,y=NULL,
+       caption = "Sources:British Columbia Ministry of Environment \nTidyTuesday Week 26: @alocord, 2020-06-23",
+       title="Cumulative caribou locations 1988-2016")
+
+
+plotanimate <- car_track + transition_time(timestamp)  +
+  transition_manual(frames=factor(year_month, levels=unique(year_month)), cumulative = FALSE)+
+  # Add title with year/season shown
+  ggtitle("Tracking Caribou Across Time: {current_frame}")
+
+
+# render animation
+animate(plot = plotanimate, 
+        nframes = length(unique(locations$year_month)), 
+        fps = 10, end_pause = 8,
+        #define size and resolution of the gif
+        height = 6, width = 12, units = "in", res = 100)
+
+# save the animation
+anim_save("Caribou_plot2.gif")
+
+```
